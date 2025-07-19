@@ -1,0 +1,88 @@
+body, html {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #0e071c;
+  font-family: Arial, sans-serif;
+  height: 100vh;
+  user-select: none;
+}
+
+canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  background: transparent;
+}
+
+#galaxy { z-index: 1; }
+#heartParticles { z-index: 2; pointer-events: none; }
+#fireworks { z-index: 3; pointer-events: none; }
+
+/* Estilos para las imágenes de conejos */
+#rabbit-left, #rabbit-right {
+  position: fixed;
+  bottom: 40px;
+  width: 150px;
+  filter: drop-shadow(0 0 8px #ffffffcc);
+  pointer-events: none;
+  user-select: none;
+  z-index: 9;
+  animation: glowPulse 4s infinite ease-in-out alternate;
+  background: transparent;
+}
+
+#rabbit-left {
+  left: 20px;
+  transform: scaleX(1);
+}
+
+#rabbit-right {
+  right: 20px;
+  transform: scaleX(-1);
+}
+
+@keyframes glowPulse {
+  0%   { filter: drop-shadow(0 0 6px #ffffffaa); }
+  50%  { filter: drop-shadow(0 0 16px #ffd700dd); }
+  100% { filter: drop-shadow(0 0 6px #ffffffaa); }
+}
+
+.color-picker {
+  position: absolute;
+  left: 50%;
+  bottom: 70px;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  gap: 24px;
+}
+
+.color-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 15px #fff4;
+  cursor: pointer;
+  transition: border-color 0.3s;
+}
+
+.color-btn:hover,
+.color-btn.selected {
+  border-color: #ffd700;
+}
+
+.title {
+  position: absolute;
+  top: 44px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 2.8em;
+  color: #fffcd7;
+  text-shadow: 0 2px 24px #ffeda0, 0 0 64px #8a6fd4;
+  z-index: 10;
+  letter-spacing: 1.5px;
+  user-select: none;
+}
