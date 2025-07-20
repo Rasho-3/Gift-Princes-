@@ -1,51 +1,76 @@
-// Setup y dimensiones
+// ---- SETUP ----
 const galaxy = document.getElementById('galaxy');
 const heartCanvas = document.getElementById('heartParticles');
 const fireCanvas = document.getElementById('fireworks');
-
 const gctx = galaxy.getContext('2d');
 const hctx = heartCanvas.getContext('2d');
 const fctx = fireCanvas.getContext('2d');
 
-let W = window.innerWidth;
-let H = window.innerHeight;
+let W, H;
 
-galaxy.width = W; galaxy.height = H;
-heartCanvas.width = W; heartCanvas.height = H;
-fireCanvas.width = W; fireCanvas.height = H;
+// --- COLOR BASE que usan los botones ---
+let colorBase = "#FF2424"; // Rojo por defecto
 
-let globalRotation = 0;  // rotación total del canvas heartParticles al rededor del centro
-
-// Galaxia fondo
-function drawStars() {
-  gctx.clearRect(0, 0, W, H);
-  for (let i = 0; i < 320; i++) {
-    let x = Math.random() * W;
-    let y = Math.random() * H;
-    let r = Math.random() * 1.2 + 0.2;
-    gctx.beginPath();
-    gctx.arc(x, y, r, 0, 2 * Math.PI);
-    gctx.fillStyle = `rgba(255,255,${200 + Math.floor(Math.random()*55)},${0.8 + Math.random()*0.2})`;
-    gctx.shadowColor = '#ffe';
-    gctx.shadowBlur = Math.random() * 6 + 2;
-    gctx.fill();
-  }
+// --- Funciones conversión hex -> HSL ---
+function hexToRgb(hex) {
+  hex = hex.replace('#','');
+  if(hex.length === 3) hex = hex.split('').map(x=>x+x).join('');
+  let num = parseInt(hex, 16);
+  return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
 }
-drawStars();
+function rgbToHsl(r, g, b) {
+  r /= 255, g /= 255, b /= 255;
+  let max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h, s, l = (max + min) / 2;
+  if(max == min){
+    h = s = 0;
+  } else {
+    let d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch(max){
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h *= 60;
+  }
+  return [h, s*100, l*100];
+}
+function baseColorHSL(hex) {
+  const rgb = hexToRgb(hex);
+  return rgbToHsl(...rgb);
+}
 
-window.addEventListener('resize', () => {
-  W = window.innerWidth; H = window.innerHeight;
+// ---- REDIMENSIONA ----
+function resizeCanvas() {
+  W = window.innerWidth;
+  H = window.innerHeight;
   galaxy.width = W; galaxy.height = H;
   heartCanvas.width = W; heartCanvas.height = H;
   fireCanvas.width = W; fireCanvas.height = H;
   drawStars();
-  fillHeartPoints();
-});
+  fillHeartParticles();
+}
+window.addEventListener('resize', resizeCanvas);
 
-// Corazón con puntos
-let particleColor = "#FF2424";
-let heartPoints = [];
-let pulseTime = 0;
+// ---- GALAXY BACKGROUND ----
+function drawStars() {
+  gctx.clearRect(0, 0, W, H);
+  for (let i = 0; i < 340; i++) {
+    let x = Math.random() * W;
+    let y = Math.random() * H;
+    let r = Math.random() * 1.4 + 0.4;
+    gctx.beginPath();
+    gctx.arc(x, y, r, 0, 2 * Math.PI);
+    gctx.fillStyle = `rgba(255,255,${220 + Math.floor(Math.random()*35)},${0.66 + Math.random()*0.29})`;
+    gctx.shadowColor = '#fff9ee';
+    gctx.shadowBlur = Math.random() * 19 + 6;
+    gctx.fill();
+  }
+}
+
+// ---- HEART PARTICLES ----
+let heartParticles = [];
 
 function heartFormula(t, scale=1) {
   const x = 16 * Math.pow(Math.sin(t), 3);
@@ -53,40 +78,115 @@ function heartFormula(t, scale=1) {
   return [scale*x, -scale*y];
 }
 
-function fillHeartPoints() {
-  heartPoints = [];
-  let cx = W/2, cy = H/2 + 30;
-  let scale = 12;
-  let radialSteps = 60, angleSteps = 80;
-  for (let rF=1/radialSteps; rF<=1; rF+=1/radialSteps) {
+class HeartStar {
+  constructor(baseX, baseY) {
+    this.baseX = baseX;
+    this.baseY = baseY;
+    this.radius = 1.3 + Math.random()*2.6 + Math.pow(Math.random(),2)*2.8;
+    // Usa colorBase como base de gama
+    let [h,s,l] = baseColorHSL(colorBase);
+    const hue = h + (Math.random()*18 - 9);
+    const sat = Math.max(60, Math.min(s + (Math.random()*15-7), 98));
+    const lum = Math.max(50, Math.min(l + (Math.random()*16-7), 95));
+    this.color = `hsl(${hue}, ${sat}%, ${lum}%)`;
+    this.twinkleSeed = Math.random()*10;
+    this.twinkleSpeed = 1 + Math.random()*1.84;
+    this.amplitude = 3 + Math.random()*20;
+    this.angle = Math.random()*2*Math.PI;
+    this.speed = 0.012 + Math.random()*0.013;
+  }
+  update(time) {
+    let t = time * 0.001;
+    this.displayX = this.baseX + Math.cos(this.angle + t*this.speed) * this.amplitude;
+    this.displayY = this.baseY + Math.sin(this.angle + t*this.speed) * this.amplitude;
+  }
+  draw(ctx, t) {
+    let twinkle = 0.7 + 0.7 * Math.sin(t*this.twinkleSpeed + this.twinkleSeed);
+    ctx.save();
+    ctx.globalAlpha = twinkle * 0.92;
+    ctx.beginPath();
+    ctx.arc(this.displayX, this.displayY, this.radius * (0.93 + Math.random()*0.15), 0, 2 * Math.PI);
+    ctx.fillStyle = this.color;
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur = 12 + this.radius*7.5*twinkle;
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// Núcleo galaxia brillante
+function drawGalaxyCore(ctx, t) {
+  let cx = W/2, cy = H/2+30;
+  let time = t * 0.001;
+  // Luz central animada tipo vórtice
+  for(let i=0; i<17; i++) {
+    ctx.save();
+    ctx.globalAlpha = 0.062 + 0.09*(1-i/17);
+    ctx.beginPath();
+    ctx.arc(
+      cx + Math.sin(time*1.21+i)*2.8,
+      cy + Math.cos(time*1.28-i)*1.2,
+      (37-i*1.6 + 9*Math.sin(time*1.1+i)),
+      0, 2*Math.PI
+    );
+    ctx.fillStyle = `hsla(${282+44*Math.sin(time+i/2)},95%,${89-i*2}%, 1)`;
+    ctx.shadowColor = "#ffffff";
+    ctx.shadowBlur = 87-5*i;
+    ctx.fill();
+    ctx.restore();
+  }
+  // Remolino central
+  ctx.save();
+  ctx.globalAlpha = 0.29 + 0.31*Math.sin(time*1.32);
+  ctx.translate(cx,cy);
+  ctx.rotate(Math.sin(time*0.8)*0.33);
+  let grad = ctx.createRadialGradient(0,0,8, 0,0,54);
+  grad.addColorStop(0,"#fffbe0");
+  grad.addColorStop(0.3,"#e2cafd");
+  grad.addColorStop(0.7,"#9a7ffe99");
+  grad.addColorStop(1,"transparent");
+  ctx.beginPath();
+  ctx.arc(0,0,54,0,2*Math.PI);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.restore();
+}
+
+// --- Genera partículas en forma de corazón ---
+function fillHeartParticles() {
+  heartParticles = [];
+  let cx = W/2, cy = H/2+30;
+  let scale = Math.min(W, H)/27;
+  let radialSteps = 36;
+  let angleSteps = 120;
+  for (let rF=0.90/radialSteps; rF<=1.0; rF+=1/radialSteps) {
     for(let tI=0; tI<angleSteps; tI++) {
       let t = (2 * Math.PI * tI) / angleSteps;
       let [ex, ey] = heartFormula(t, scale);
       let x = cx + ex*rF;
       let y = cy + ey*rF;
-      heartPoints.push({
-        baseX:x,
-        baseY:y,
-        r:1 + Math.random()*2.2,
-        alpha: 0.7 + Math.random()*0.3,
-        twinkleSeed: Math.random()*Math.PI*2
-      });
+      // Solo puntos internos del corazón
+      if (
+        Math.sqrt((x-cx)*(x-cx)+(y-cy)*(y-cy)) < (scale*16*0.99)
+      ) {
+        heartParticles.push(new HeartStar(x, y));
+      }
     }
   }
 }
-fillHeartPoints();
 
+// ---- Cambia color con los botones ----
 document.querySelectorAll('.color-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    particleColor = btn.dataset.color;
-    fillHeartPoints();
+    colorBase = btn.dataset.color;
+    fillHeartParticles();
     document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
   });
 });
 document.querySelectorAll('.color-btn')[0].classList.add('selected');
 
-// Fuegos artificiales
+// ---- Fuegos artificiales (igual que antes) ----
 class FireworkParticle {
   constructor(x, y, color, vx, vy) {
     this.x=x; this.y=y; this.color=color;
@@ -113,14 +213,13 @@ class FireworkParticle {
     ctx.restore();
   }
 }
-
 class Firework {
   constructor() {
     const pad = 70;
     this.x = pad + Math.random()*(W - pad*2);
     this.y = H + 10;
     this.targetY = Math.random() * H * 0.4 + H * 0.15;
-    const colors = ["#FF2424","#FFD700","#34FA6F","#fff9","#77b2ff","#ff7dff"];
+    const colors = ["#FF2424","#FFD700","#2277FF","#fff9","#77b2ff","#ff7dff"];
     this.color = colors[Math.floor(Math.random()*colors.length)];
     this.vx = (Math.random()-0.5)*1.8;
     this.vy = -(6 + Math.random()*2);
@@ -164,7 +263,6 @@ class Firework {
   }
   isDead() {return this.state===1 && this.particles.length===0;}
 }
-
 let fireworks = [];
 function animateFireworks() {
   fctx.globalCompositeOperation = 'destination-out';
@@ -180,7 +278,7 @@ function animateFireworks() {
   fireworks = fireworks.filter(f => !f.isDead());
 }
 
-// Texto Mi Princesa
+// Texto MI PRINCESA
 const princessTitle = document.getElementById('princess-title');
 let titleCanShow = true;
 function onFireworkExplode(){
@@ -195,36 +293,19 @@ function onFireworkExplode(){
   }, 1800);
 }
 
-// Animación principal con rotación de pantalla para corazón y conejos
+// ---- MAIN ANIMATION ----
 function animate(time=0){
   hctx.clearRect(0,0,W,H);
-
-  hctx.save();
-  hctx.translate(W/2, H/2);
-  hctx.rotate(globalRotation);
-  hctx.translate(-W/2, -H/2);
-
-  pulseTime += 0.034;
-
-  for(let p of heartPoints){
-    const twinkle = 0.85 + 0.35 * Math.sin(pulseTime*2 + p.twinkleSeed);
-    hctx.save();
-    hctx.globalAlpha = p.alpha * twinkle;
-    hctx.beginPath();
-    hctx.arc(p.baseX, p.baseY, p.r*(0.95 + 0.25 * twinkle), 0, 2*Math.PI);
-    hctx.fillStyle = particleColor;
-    hctx.shadowColor = particleColor;
-    hctx.shadowBlur = 15 + 6 * twinkle;
-    hctx.fill();
-    hctx.restore();
+  for (let p of heartParticles) {
+    p.update(time);
+    p.draw(hctx, time*0.01);
   }
-
-  hctx.restore();
-
-  globalRotation += 0.0007;
-
+  drawGalaxyCore(hctx, time);
   animateFireworks();
-
   requestAnimationFrame(animate);
 }
+
+// --- INICIAR ---
+resizeCanvas();
+fillHeartParticles();
 animate();

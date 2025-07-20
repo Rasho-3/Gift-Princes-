@@ -21,7 +21,6 @@ canvas {
 #heartParticles { z-index: 2; pointer-events: none; }
 #fireworks { z-index: 3; pointer-events: none; }
 
-/* Estilos para las imágenes de conejos */
 #rabbit-left, #rabbit-right {
   position: fixed;
   bottom: 40px;
@@ -30,7 +29,7 @@ canvas {
   pointer-events: none;
   user-select: none;
   z-index: 9;
-  animation: glowPulse 4s infinite ease-in-out alternate;
+  animation: glowPulse 4s infinite alternate;
   background: transparent;
 }
 
