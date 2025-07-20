@@ -83,7 +83,6 @@ class HeartStar {
     this.baseX = baseX;
     this.baseY = baseY;
     this.radius = 1.3 + Math.random()*2.6 + Math.pow(Math.random(),2)*2.8;
-    // Usa colorBase como base de gama
     let [h,s,l] = baseColorHSL(colorBase);
     const hue = h + (Math.random()*18 - 9);
     const sat = Math.max(60, Math.min(s + (Math.random()*15-7), 98));
@@ -116,9 +115,8 @@ class HeartStar {
 
 // Núcleo galaxia brillante
 function drawGalaxyCore(ctx, t) {
-  let cx = W/2, cy = H/2+30;
+  let cx = W/2, cy = H/2;
   let time = t * 0.001;
-  // Luz central animada tipo vórtice
   for(let i=0; i<17; i++) {
     ctx.save();
     ctx.globalAlpha = 0.062 + 0.09*(1-i/17);
@@ -135,7 +133,6 @@ function drawGalaxyCore(ctx, t) {
     ctx.fill();
     ctx.restore();
   }
-  // Remolino central
   ctx.save();
   ctx.globalAlpha = 0.29 + 0.31*Math.sin(time*1.32);
   ctx.translate(cx,cy);
@@ -152,10 +149,10 @@ function drawGalaxyCore(ctx, t) {
   ctx.restore();
 }
 
-// --- Genera partículas en forma de corazón ---
 function fillHeartParticles() {
   heartParticles = [];
-  let cx = W/2, cy = H/2+30;
+  let cx = W/2;
+  let cy = H/2;
   let scale = Math.min(W, H)/27;
   let radialSteps = 36;
   let angleSteps = 120;
@@ -165,17 +162,14 @@ function fillHeartParticles() {
       let [ex, ey] = heartFormula(t, scale);
       let x = cx + ex*rF;
       let y = cy + ey*rF;
-      // Solo puntos internos del corazón
-      if (
-        Math.sqrt((x-cx)*(x-cx)+(y-cy)*(y-cy)) < (scale*16*0.99)
-      ) {
+      if (Math.sqrt((x-cx)*(x-cx)+(y-cy)*(y-cy)) < (scale*16*0.99)) {
         heartParticles.push(new HeartStar(x, y));
       }
     }
   }
 }
 
-// ---- Cambia color con los botones ----
+// Cambiar color con los botones
 document.querySelectorAll('.color-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     colorBase = btn.dataset.color;
@@ -186,7 +180,9 @@ document.querySelectorAll('.color-btn').forEach(btn => {
 });
 document.querySelectorAll('.color-btn')[0].classList.add('selected');
 
-// ---- Fuegos artificiales (igual que antes) ----
+// ------------------------------------
+// Fuegos artificiales normales y especiales
+// ------------------------------------
 class FireworkParticle {
   constructor(x, y, color, vx, vy) {
     this.x=x; this.y=y; this.color=color;
@@ -259,10 +255,117 @@ class Firework {
       const vy = Math.sin(angle)*speed*(0.7 + 0.53*Math.random());
       this.particles.push(new FireworkParticle(this.x,this.y,this.color,vx,vy));
     }
-    onFireworkExplode();
   }
   isDead() {return this.state===1 && this.particles.length===0;}
 }
+
+// ---- Fireworks especiales para los mensajes especiales ----
+const specialMsgLeft = document.querySelector('.special-msg-left');
+const specialMsgRight = document.querySelector('.special-msg-right');
+let specialFireworks = [];
+let specialTimers = {
+  left: {shown: false, lastTime: 0, nextTime: 0},
+  right: {shown: false, lastTime: 0, nextTime: 0}
+};
+
+function getSpecialFireworkPos(side) {
+  let x, y;
+  if(side === 'left'){
+    x = 110;
+    y = H - 235;
+    if(W < 850) { x = 56; y = H - 225; }
+  } else {
+    x = W - 110;
+    y = H - 235;
+    if(W < 850) { x = W - 56; y = H - 225; }
+  }
+  return {x, y};
+}
+class SpecialFirework {
+  constructor(side) {
+    this.side = side;
+    let {x, y} = getSpecialFireworkPos(side);
+    this.x = x;
+    this.y = H + 20;
+    this.targetY = y;
+    this.vx = 0;
+    this.vy = -(6.7 + Math.random()*0.8);
+    this.state = 0;
+    this.particles = [];
+    this.color = (side === 'left') ? "#FF9229" : "#FFD700";
+  }
+  update() {
+    if(this.state === 0){
+      this.y += this.vy;
+      this.vy += 0.055;
+      if( this.y <= this.targetY) this.explode();
+    } else {
+      this.particles.forEach(p => p.update());
+      this.particles = this.particles.filter(p=> p.age < p.life);
+    }
+  }
+  draw(ctx) {
+    if(this.state === 0){
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 6.3, 0, 2 * Math.PI);
+      ctx.fillStyle = this.color;
+      ctx.shadowColor = this.color;
+      ctx.shadowBlur = 22;
+      ctx.fill();
+      ctx.restore();
+    } else {
+      this.particles.forEach(p => p.draw(ctx));
+    }
+  }
+  explode() {
+    this.state = 1;
+    for(let i=0;i<43+Math.random()*8;i++){
+      const angle = (i/60)*2*Math.PI;
+      const speed = 3.1 + Math.random()*1.5;
+      const vx = Math.cos(angle)*speed*(0.84 + 0.16*Math.random());
+      const vy = Math.sin(angle)*speed*(0.92 + 0.1*Math.random());
+      this.particles.push(new FireworkParticle(
+        this.x, this.y,
+        this.color,
+        vx, vy
+      ));
+    }
+    showSpecialMsg(this.side);
+  }
+  isDead(){ return this.state===1 && this.particles.length===0;}
+}
+function showSpecialMsg(side){
+  if(side==='left'){
+    specialMsgLeft.style.display='block';
+    specialTimers.left.shown = true;
+    setTimeout(()=>{specialMsgLeft.style.display='none'; specialTimers.left.shown = false;}, 3000);
+    specialTimers.left.lastTime = performance.now();
+    specialTimers.left.nextTime = specialTimers.left.lastTime + 4000;
+  } else {
+    specialMsgRight.style.display='block';
+    specialTimers.right.shown = true;
+    setTimeout(()=>{specialMsgRight.style.display='none'; specialTimers.right.shown = false;}, 3000);
+    specialTimers.right.lastTime = performance.now();
+    specialTimers.right.nextTime = specialTimers.right.lastTime + 4000;
+  }
+}
+function processSpecialFireworks(now) {
+  for(const side of ['left','right']){
+    if(specialFireworks.find(fw=>fw.side===side)) continue;
+    if(specialTimers[side].shown) continue;
+
+    let t = performance.now();
+    if(!specialTimers[side].lastTime){
+      specialTimers[side].lastTime = t-3000;
+      specialTimers[side].nextTime = t+700;
+    }
+    if(t >= specialTimers[side].nextTime){
+      specialFireworks.push(new SpecialFirework(side));
+    }
+  }
+}
+
 let fireworks = [];
 function animateFireworks() {
   fctx.globalCompositeOperation = 'destination-out';
@@ -276,21 +379,11 @@ function animateFireworks() {
   fireworks.forEach(f => f.update());
   fireworks.forEach(f => f.draw(fctx));
   fireworks = fireworks.filter(f => !f.isDead());
-}
 
-// Texto MI PRINCESA
-const princessTitle = document.getElementById('princess-title');
-let titleCanShow = true;
-function onFireworkExplode(){
-  if(!titleCanShow) return;
-  titleCanShow = false;
-  princessTitle.style.display = 'block';
-  setTimeout(() => {
-    princessTitle.style.display = 'none';
-    setTimeout(() => {
-      titleCanShow = true;
-    }, 5000);
-  }, 1800);
+  specialFireworks.forEach(fw=>fw.update());
+  specialFireworks.forEach(fw=>fw.draw(fctx));
+  specialFireworks = specialFireworks.filter(fw=>!fw.isDead());
+  processSpecialFireworks();
 }
 
 // ---- MAIN ANIMATION ----

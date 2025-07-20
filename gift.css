@@ -2,9 +2,10 @@ body, html {
   margin: 0;
   padding: 0;
   overflow: hidden;
+  width: 100vw;
+  height: 100vh;
   background: #0e071c;
   font-family: Arial, sans-serif;
-  height: 100vh;
   user-select: none;
 }
 
@@ -14,7 +15,8 @@ canvas {
   width: 100vw;
   height: 100vh;
   display: block;
-  background: transparent;
+  background: transparent !important;
+  pointer-events: none;
 }
 
 #galaxy { z-index: 1; }
@@ -32,17 +34,8 @@ canvas {
   animation: glowPulse 4s infinite alternate;
   background: transparent;
 }
-
-#rabbit-left {
-  left: 20px;
-  transform: scaleX(1);
-}
-
-#rabbit-right {
-  right: 20px;
-  transform: scaleX(-1);
-}
-
+#rabbit-left { left: 20px; transform: scaleX(1);}
+#rabbit-right { right: 20px; transform: scaleX(-1);}
 @keyframes glowPulse {
   0%   { filter: drop-shadow(0 0 6px #ffffffaa); }
   50%  { filter: drop-shadow(0 0 16px #ffd700dd); }
@@ -58,7 +51,6 @@ canvas {
   display: flex;
   gap: 24px;
 }
-
 .color-btn {
   width: 36px; height: 36px;
   border-radius: 50%;
@@ -67,21 +59,91 @@ canvas {
   cursor: pointer;
   transition: border-color 0.3s;
 }
-
 .color-btn:hover,
 .color-btn.selected {
   border-color: #ffd700;
 }
 
-.title {
-  position: absolute;
-  top: 44px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 2.8em;
-  color: #fffcd7;
-  text-shadow: 0 2px 24px #ffeda0, 0 0 64px #8a6fd4;
-  z-index: 10;
-  letter-spacing: 1.5px;
+/* Mensajes fijos sobre conejos */
+.fixed-msg {
+  position: fixed;
+  z-index: 11;
+  color: #fffbe7;
+  text-shadow: 0 0 18px #ffd700, 0 0 38px #ff95c5;
+  font-size: 1.21em;
+  font-weight: bold;
+  background: rgba(40,26,10,0.19);
+  border-radius: 13px;
+  padding: 8px 18px 7px 18px;
+  pointer-events: none;
+  opacity: 0.95;
   user-select: none;
+  backdrop-filter: blur(1.8px);
+  animation: fixedMsgGlow 2.7s infinite alternate;
+}
+@keyframes fixedMsgGlow {
+  0%   { text-shadow: 0 0 14px #ffeeda, 0 0 40px #ffeeb1, 0 1px 0 #fff3; }
+  100% { text-shadow: 0 0 22px #fffabaff, 0 0 48px #ffeeb1cc, 0 1px 0 #fff; }
+}
+.fixed-msg-left {
+  left: 38px;
+  bottom: 215px;
+  text-align: left;
+  max-width: 215px;
+}
+.fixed-msg-right {
+  right: 38px;
+  bottom: 215px;
+  text-align: right;
+  max-width: 330px;
+}
+
+/* Mensajes especiales con efecto "fuego" */
+.special-msg {
+  position: fixed;
+  z-index: 12;
+  font-size: 1.33em;
+  font-weight: bold;
+  padding: 10px 32px 10px 32px;
+  border-radius: 19px;
+  background: transparent;
+  color: #ffdc75;
+  text-shadow: 0 2px 12px #fff2,
+               0 0 22px #ff8400cc,
+               0 0 42px #ff9229;
+  animation: msgFlame 1.45s infinite alternate cubic-bezier(.4,-0.2,.6,1.25);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.97;
+  letter-spacing: 2.5px;
+  display: none;
+}
+@keyframes msgFlame {
+  0%   { color: #fffbed; text-shadow: 0 2px 8px #ffe4; }
+  40%  { color: #ffdc75; text-shadow: 0 2px 31px #ffdb6d, 0 0 25px #ff8400cc, 0 0 44px #ff9229;}
+  60%  { color: #ffe3b3; text-shadow: 0 2px 44px #fffac0, 0 0 44px #ff9229;}
+  100% { color: #ffd774; text-shadow: 0 0 25px #ff8400, 0 0 44px #ee9229;}
+}
+.special-msg-left {
+  left: 24px;
+  bottom: 270px;
+  max-width: 170px;
+}
+.special-msg-right {
+  right: 24px;
+  bottom: 270px;
+  max-width: 210px;
+}
+
+@media (max-width: 800px) {
+  .fixed-msg-left, .special-msg-left {
+    left: 6px;
+    max-width: 110px;
+    font-size: 0.94em;
+  }
+  .fixed-msg-right, .special-msg-right {
+    right: 6px;
+    max-width: 146px;
+    font-size: 0.94em;
+  }
 }
